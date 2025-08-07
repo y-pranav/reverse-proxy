@@ -1,30 +1,39 @@
 #pragma once
 #include <string>
 #include <fstream>
-// #include <mutex>  // Commented out for now - we'll add threading later
 
-/**
- * Logger class - handles all logging functionality
- * Similar to Java's logging frameworks but simpler
- * Thread-safe for concurrent access
- */
+enum class LogLevel {
+    DEBUG,
+    INFO,
+    WARNING,
+    ERROR
+};
+
+class Config;
+
 class Logger {
 private:
     std::ofstream logFile;
-    // std::mutex logMutex;  // Commented out for now
     bool consoleOutput;
+    LogLevel currentLogLevel;
 
 public:
-    Logger(const std::string& filename = "", bool console = true);
+    Logger(const std::string& filename = "", bool console = true, LogLevel level = LogLevel::INFO);
     ~Logger();
     
-    // Different log levels (like Log4j)
+    void configure(const Config& config);
+    
+    void debug(const std::string& message);
     void info(const std::string& message);
     void warning(const std::string& message);
     void error(const std::string& message);
-    void debug(const std::string& message);
+    
+    void setLogLevel(LogLevel level) { currentLogLevel = level; }
+    LogLevel getLogLevel() const { return currentLogLevel; }
     
 private:
-    void writeLog(const std::string& level, const std::string& message);
+    void writeLog(LogLevel level, const std::string& message);
     std::string getCurrentTimestamp();
+    std::string logLevelToString(LogLevel level);
+    bool shouldLog(LogLevel level) const;
 };

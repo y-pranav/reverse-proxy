@@ -3,14 +3,34 @@
 #include <sstream>
 #include <chrono>
 
-Server::Server(int serverPort, Logger& log, LoadBalancer& lb) 
-    : port(serverPort), logger(log), loadBalancer(lb), serverSocket(INVALID_SOCKET) {
-    logger.info("Server created on port " + std::to_string(port));
+Server::Server(Logger& log, LoadBalancer& lb) 
+    : logger(log), loadBalancer(lb), serverSocket(INVALID_SOCKET) {
+    logger.info("Server instance created");
 }
 
 Server::~Server() {
     stop();
     cleanupNetworking();
+}
+
+bool Server::configure(const std::string& configFile) {
+    logger.info("Loading configuration from: " + configFile);
+    
+    if (!config.loadFromFile(configFile)) {
+        logger.warning("Failed to load config file, using defaults");
+    }
+    
+    logger.configure(config);
+    logger.info("Logger configured successfully");
+    
+    loadBalancer.configure(config);
+    logger.info("Load balancer configured successfully");
+    
+    config.printConfiguration();
+    loadBalancer.printStatus();
+    
+    logger.info("Server configured on port " + std::to_string(config.getProxyPort()));
+    return true;
 }
 
 bool Server::initializeNetworking() {
@@ -38,7 +58,6 @@ bool Server::start() {
         return false;
     }
     
-    // Create socket
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == INVALID_SOCKET) {
         logger.error("Failed to create socket");
@@ -46,28 +65,24 @@ bool Server::start() {
         return false;
     }
     
-    // Set socket options
     int opt = 1;
     if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&opt, sizeof(opt)) < 0) {
         logger.warning("Failed to set SO_REUSEADDR");
     }
     
-    // Setup server address
     sockaddr_in serverAddr{};
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_addr.s_addr = INADDR_ANY;
-    serverAddr.sin_port = htons(port);
+    serverAddr.sin_port = htons(config.getProxyPort());
     
-    // Bind socket
     if (bind(serverSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
-        logger.error("Failed to bind socket on port " + std::to_string(port));
+        logger.error("Failed to bind socket on port " + std::to_string(config.getProxyPort()));
         closesocket(serverSocket);
         cleanupNetworking();
         return false;
     }
     
-    // Listen for connections
-    if (listen(serverSocket, 10) == SOCKET_ERROR) {
+    if (listen(serverSocket, config.getMaxConnections()) == SOCKET_ERROR) {
         logger.error("Failed to listen on socket");
         closesocket(serverSocket);
         cleanupNetworking();
@@ -75,17 +90,17 @@ bool Server::start() {
     }
     
     running.store(true);
-    logger.info("Server started successfully on port " + std::to_string(port));
-    std::cout << "Reverse Proxy Server listening on port " << port << std::endl;
+    logger.info("Server started successfully on port " + std::to_string(config.getProxyPort()));
+    std::cout << "Reverse Proxy Server listening on port " << config.getProxyPort() << std::endl;
+    std::cout << "Algorithm: " << config.algorithmToString() << std::endl;
+    std::cout << "Backend servers: " << loadBalancer.getBackendCount() << std::endl;
     std::cout << "Send HTTP requests to test the load balancing!" << std::endl;
     std::cout << "Press Ctrl+C to stop the server" << std::endl;
     
-    // Main server loop
     while (running.load()) {
         sockaddr_in clientAddr{};
         socklen_t clientAddrLen = sizeof(clientAddr);
         
-        // Accept client connection
         SOCKET clientSocket = accept(serverSocket, (sockaddr*)&clientAddr, &clientAddrLen);
         if (clientSocket == INVALID_SOCKET) {
             if (running.load()) {
@@ -94,7 +109,6 @@ bool Server::start() {
             continue;
         }
         
-        // Handle client in same thread
         handleClient(clientSocket);
         closesocket(clientSocket);
     }
@@ -105,38 +119,54 @@ bool Server::start() {
 void Server::handleClient(SOCKET clientSocket) {
     char buffer[4096];
     
+    std::string clientIP = getClientIP(clientSocket);
+    
     // Receive HTTP request
     int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
     if (bytesReceived <= 0) {
-        logger.warning("Failed to receive data from client");
+        logger.warning("Failed to receive data from client " + clientIP);
         return;
     }
     
     buffer[bytesReceived] = '\0';
     std::string request(buffer);
     
-    logger.info("Received HTTP request (" + std::to_string(bytesReceived) + " bytes)");
+    logger.debug("Received HTTP request from " + clientIP + " (" + std::to_string(bytesReceived) + " bytes)");
     
-    // Parse HTTP request
     std::pair<std::string, std::string> parsedRequest = parseHttpRequest(request);
     std::string method = parsedRequest.first;
     std::string path = parsedRequest.second;
     
     if (method.empty() || path.empty()) {
-        logger.warning("Invalid HTTP request format");
+        logger.warning("Invalid HTTP request format from " + clientIP);
         std::string response = createHttpResponse(400, "Bad Request");
         send(clientSocket, response.c_str(), response.length(), 0);
         return;
     }
     
-    logger.info("Parsed: " + method + " " + path);
+    logger.info("Request: " + method + " " + path + " from " + clientIP);
     
-    // Forward to backend
-    std::string backendResponse = forwardToBackend(method, path, request);
+    std::string backendResponse = forwardToBackend(method, path, request, clientIP);
     
-    // Send response back to client
     send(clientSocket, backendResponse.c_str(), backendResponse.length(), 0);
-    logger.info("Response sent to client");
+    logger.debug("Response sent to client " + clientIP);
+}
+
+std::string Server::getClientIP(SOCKET clientSocket) {
+    sockaddr_in clientAddr;
+    socklen_t addrLen = sizeof(clientAddr);
+    
+    if (getpeername(clientSocket, (sockaddr*)&clientAddr, &addrLen) == 0) {
+#ifdef _WIN32
+        return std::string(inet_ntoa(clientAddr.sin_addr));
+#else
+        char ipStr[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &clientAddr.sin_addr, ipStr, INET_ADDRSTRLEN);
+        return std::string(ipStr);
+#endif
+    }
+    
+    return "unknown";
 }
 
 std::pair<std::string, std::string> Server::parseHttpRequest(const std::string& request) {
@@ -150,9 +180,9 @@ std::pair<std::string, std::string> Server::parseHttpRequest(const std::string& 
     return {"", ""};
 }
 
-std::string Server::forwardToBackend(const std::string& method, const std::string& path, const std::string& headers) {
-    // Get backend server from load balancer
-    BackendServer* backend = loadBalancer.getNextBackend();
+std::string Server::forwardToBackend(const std::string& method, const std::string& path, 
+                                    const std::string& headers, const std::string& clientIP) {
+    BackendServer* backend = loadBalancer.getNextBackend(clientIP);
     
     if (backend == nullptr) {
         logger.error("No healthy backend servers available");
@@ -160,15 +190,24 @@ std::string Server::forwardToBackend(const std::string& method, const std::strin
     }
     
     std::string backendUrl = backend->host + ":" + std::to_string(backend->port);
-    logger.info("Forwarding " + method + " " + path + " to backend: " + backendUrl);
+    logger.info("Forwarding " + method + " " + path + " to backend: " + backendUrl + 
+                " (algorithm: " + config.algorithmToString() + ")");
+    
+    loadBalancer.incrementConnections(backend->host, backend->port);
     
     std::string responseBody = "{\n";
     responseBody += "  \"message\": \"Request processed successfully\",\n";
     responseBody += "  \"method\": \"" + method + "\",\n";
     responseBody += "  \"path\": \"" + path + "\",\n";
     responseBody += "  \"backend\": \"" + backendUrl + "\",\n";
+    responseBody += "  \"client_ip\": \"" + clientIP + "\",\n";
+    responseBody += "  \"algorithm\": \"" + config.algorithmToString() + "\",\n";
+    responseBody += "  \"backend_weight\": " + std::to_string(backend->weight) + ",\n";
+    responseBody += "  \"backend_connections\": " + std::to_string(backend->activeConnections.load()) + ",\n";
     responseBody += "  \"timestamp\": \"" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()) + "\"\n";
     responseBody += "}";
+    
+    loadBalancer.decrementConnections(backend->host, backend->port);
     
     logger.info("Backend " + backendUrl + " processed request successfully");
     return createHttpResponse(200, responseBody);

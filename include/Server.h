@@ -4,6 +4,7 @@
 #include <atomic>
 #include "Logger.h"
 #include "LoadBalancer.h"
+#include "Config.h"
 
 #ifdef _WIN32
     #include <winsock2.h>
@@ -24,38 +25,26 @@ class Server {
 private:
     Logger& logger;
     LoadBalancer& loadBalancer;
-    int port;
+    Config config;
     SOCKET serverSocket;
     std::atomic<bool> running{false};
     
-    // Initialize networking (Windows-specific)
     bool initializeNetworking();
-    
-    // Clean up networking
     void cleanupNetworking();
-    
-    // Handle a single client connection
     void handleClient(SOCKET clientSocket);
-    
-    // Parse HTTP request to extract method and path
     std::pair<std::string, std::string> parseHttpRequest(const std::string& request);
-    
-    // Forward request to backend server
-    std::string forwardToBackend(const std::string& method, const std::string& path, const std::string& headers);
-    
-    // Create HTTP response
+    std::string getClientIP(SOCKET clientSocket);
+    std::string forwardToBackend(const std::string& method, const std::string& path, 
+                                const std::string& headers, const std::string& clientIP);
     std::string createHttpResponse(int statusCode, const std::string& body);
 
 public:
-    Server(int serverPort, Logger& log, LoadBalancer& lb);
+    Server(Logger& log, LoadBalancer& lb);
     ~Server();
     
-    // Start the server (blocking call)
+    bool configure(const std::string& configFile);
     bool start();
-    
-    // Stop the server
     void stop();
-    
-    // Check if server is running
     bool isRunning() const { return running.load(); }
+    const Config& getConfig() const { return config; }
 };

@@ -1,46 +1,54 @@
 #include "Server.h"
 #include "Logger.h"
 #include "LoadBalancer.h"
+#include "Config.h"
 #include <iostream>
 
-int main() {
-    std::cout << "=== Real Networking Reverse Proxy Test ===" << std::endl;
+int main(int argc, char* argv[]) {
+    std::cout << "=== Reverse Proxy Server with Configuration Management ===" << std::endl;
     
-    // Initialize logging
-    Logger logger("real_networking_test.log", true);
-    logger.info("=== Real Networking Test Started ===");
+    std::string configFile = "config.json";
     
-    // Initialize load balancer
-    LoadBalancer loadBalancer;
+    if (argc > 1) {
+        configFile = argv[1];
+    }
     
-    // Add some test backend servers
-    loadBalancer.addBackend("127.0.0.1", 3000);
-    loadBalancer.addBackend("127.0.0.1", 8000);
-    loadBalancer.addBackend("127.0.0.1", 8080);
+    Logger logger("", true, LogLevel::INFO);
+    logger.info("=== Reverse Proxy Server Starting ===");
+    logger.info("Using configuration file: " + configFile);
     
-    logger.info("Configured " + std::to_string(loadBalancer.getBackendCount()) + " backend servers");
-    std::cout << "Backend Servers Configured:" << std::endl;
-    std::cout << "   127.0.0.1:3000" << std::endl;
-    std::cout << "   127.0.0.1:8000" << std::endl;
-    std::cout << "   127.0.0.1:8080" << std::endl;
+    LoadBalancer loadBalancer(LoadBalancingAlgorithm::ROUND_ROBIN);
     
-    // Create the reverse proxy server
-    const int PROXY_PORT = 8888;
-    Server proxyServer(PROXY_PORT, logger, loadBalancer);
+    Server proxyServer(logger, loadBalancer);
     
-    std::cout << "\nStarting Real Reverse Proxy Server..." << std::endl;
+    if (!proxyServer.configure(configFile)) {
+        logger.error("Failed to configure server");
+        return 1;
+    }
+    
+    const Config& config = proxyServer.getConfig();
+    
+    std::cout << "\nStarting Reverse Proxy Server..." << std::endl;
     std::cout << "================================================" << std::endl;
-    std::cout << "Server will listen on: http://localhost:" << PROXY_PORT << std::endl;
-    std::cout << "Test with commands like:" << std::endl;
-    std::cout << "   curl http://localhost:" << PROXY_PORT << std::endl;
-    std::cout << "   curl http://localhost:" << PROXY_PORT << "/api/users" << std::endl;
-    std::cout << "   curl -X POST http://localhost:" << PROXY_PORT << "/api/login" << std::endl;
-    std::cout << "\nNote: Backend servers on ports 3000, 8000, 8080 should be running" << std::endl;
+    std::cout << "Server will listen on: http://localhost:" << config.getProxyPort() << std::endl;
+    std::cout << "Load Balancing Algorithm: " << config.algorithmToString() << std::endl;
+    std::cout << "Backend Servers: " << config.getBackends().size() << std::endl;
+    
+    for (size_t i = 0; i < config.getBackends().size(); i++) {
+        const auto& backend = config.getBackends()[i];
+        std::cout << "   " << (i + 1) << ". " << backend.host << ":" << backend.port 
+                  << " (weight: " << backend.weight << ")" << std::endl;
+    }
+    
+    std::cout << "\nTest with commands like:" << std::endl;
+    std::cout << "   curl http://localhost:" << config.getProxyPort() << std::endl;
+    std::cout << "   curl http://localhost:" << config.getProxyPort() << "/api/users" << std::endl;
+    std::cout << "   curl -X POST http://localhost:" << config.getProxyPort() << "/api/login" << std::endl;
+    std::cout << "\nNote: Backend servers should be running on configured ports" << std::endl;
     std::cout << "    If no backends are available, you'll get 503 Service Unavailable" << std::endl;
     std::cout << "\nPress Ctrl+C to stop the server" << std::endl;
     std::cout << "================================================" << std::endl;
     
-    // Start the server (this is a blocking call)
     bool success = proxyServer.start();
     
     if (!success) {
@@ -49,8 +57,8 @@ int main() {
         return 1;
     }
     
-    logger.info("=== Real Networking Test Completed ===");
-    std::cout << "\nServer shutdown complete. Check 'real_networking_test.log' for detailed logs." << std::endl;
+    logger.info("=== Reverse Proxy Server Shutdown Complete ===");
+    std::cout << "\nServer shutdown complete. Check '" << config.getLogFile() << "' for detailed logs." << std::endl;
     
     return 0;
 }
