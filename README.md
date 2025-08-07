@@ -12,6 +12,15 @@ A high-performance C++ reverse proxy server with configurable load balancing alg
 - **Health Management**: Backend server health tracking and monitoring
 - **Thread-Safe**: Atomic operations for concurrent request handling
 
+## Version History
+
+This project demonstrates incremental development with multiple versions available:
+
+- **[`v1`](../../tree/v1)** - Simple reverse proxy with basic round-robin load balancing
+- **[`v2`](../../tree/v2)** - Configuration management with JSON configs and multiple algorithms
+- **[`main`](../../tree/main)** - Stable release branch (latest stable features)
+- **[`dev`](../../tree/dev)** - Active development branch (experimental features)
+
 ## Architecture
 
 ```
@@ -88,53 +97,7 @@ curl -X POST http://localhost:8888/api/login
 
 The server uses JSON configuration files for all settings. A default `config.json` file is provided.
 
-### Configuration File Structure
-
-```json
-{
-  "server": {
-    "port": 8888,
-    "max_connections": 100,
-    "connection_timeout": 30,
-    "keep_alive": true
-  },
-  "logging": {
-    "file": "reverse_proxy.log",
-    "level": "INFO",
-    "console": true
-  },
-  "load_balancer": {
-    "algorithm": "ROUND_ROBIN",
-    "backends": [
-      {
-        "host": "127.0.0.1",
-        "port": 3000,
-        "weight": 1,
-        "enabled": true
-      }
-    ]
-  },
-  "health_check": {
-    "enabled": true,
-    "interval": 30,
-    "path": "/health",
-    "timeout": 5
-  }
-}
-```
-
-### Load Balancing Algorithms
-
-- **ROUND_ROBIN**: Distributes requests evenly across backends
-- **WEIGHTED_ROUND_ROBIN**: Distributes based on configured weights
-- **LEAST_CONNECTIONS**: Routes to backend with fewest active connections
-- **IP_HASH**: Routes based on client IP hash for session affinity
-
-### Sample Configurations
-
-- `config.json`: Basic round-robin configuration
-- `config-weighted.json`: Weighted round-robin with different backend weights
-- `config-least-connections.json`: Least connections algorithm setup
+For detailed configuration options and examples, see [CONFIG.md](CONFIG.md).
 
 ## Project Structure
 
