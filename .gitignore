@@ -1,0 +1,232 @@
+# =============================================================================
+# .gitignore for C++ Reverse Proxy Project
+# =============================================================================
+# This file tells Git which files and directories to ignore when committing
+# to version control. Each section is explained with comments.
+
+# =============================================================================
+# COMPILED EXECUTABLES AND BINARIES
+# =============================================================================
+# These are the output files from compilation that should not be in version control
+# because they can be regenerated from source code
+
+# Main executable files
+*.exe
+*.out
+reverse_proxy
+reverse_proxy.exe
+test_real_networking
+test_real_networking.exe
+
+# Object files
+*.o                      # GCC/Clang object files
+*.obj                    # MSVC object files
+*.a                      # Static library files (Linux)
+*.lib                    # Static library files (Windows)
+*.so                     # Shared library files (Linux)
+*.dll                    # Dynamic library files (Windows)
+*.dylib                  # Dynamic library files (macOS)
+
+# Precompiled headers
+*.pch                    # Precompiled header files
+*.gch                    # GCC precompiled headers
+
+build/                   # CMake default build directory
+Build/                   # Alternative build directory
+BUILD/                   # Another common build directory
+out/                     # Visual Studio Code default build output
+bin/                     # Binary output directory
+obj/                     # Object files directory
+lib/                     # Library output directory
+dist/                    # Distribution directory
+target/                  # Rust-style target directory (if mixed projects)
+
+# CMake specific
+CMakeCache.txt           # CMake cache file
+CMakeFiles/              # CMake temporary files
+cmake_install.cmake     # CMake install script
+Makefile                 # Generated Makefiles
+*.cmake                  # Generated CMake files (except CMakeLists.txt)
+!CMakeLists.txt          # But keep our main CMakeLists.txt
+
+*.log
+logs/
+real_networking_test.log
+reverse_proxy.log
+error.log
+access.log
+debug.log
+
+# General temporary files
+*.tmp                    # Temporary files
+*.temp                   # Alternative temporary files
+*.swp                    # Vim swap files
+*.swo                    # Vim swap files
+*~                       # Backup files created by editors
+.DS_Store                # macOS directory metadata
+Thumbs.db                # Windows thumbnail cache
+*.bak                    # Backup files
+
+
+# Visual Studio Code
+.vscode/settings.json    # User-specific VS Code settings
+.vscode/launch.json      # Debug configurations (keep if shared)
+.vscode/c_cpp_properties.json  # C++ configuration (keep if shared)
+.vscode/.browse.VC.db    # VS Code database
+.vscode/.browse.VC.db-*  # VS Code database files
+
+# Visual Studio
+*.vcxproj.user           # User-specific project settings
+*.vcxproj.filters        # Project filters (optional)
+*.sdf                    # IntelliSense database
+*.opensdf                # IntelliSense database
+*.VC.db                  # Visual Studio database
+*.VC.opendb              # Visual Studio database
+.vs/                     # Visual Studio cache directory
+
+# CLion / IntelliJ
+.idea/                   # IntelliJ IDEA configuration
+cmake-build-*/           # CLion build directories
+
+# Code::Blocks
+*.cbp                    # Code::Blocks project file
+*.layout                 # Code::Blocks layout file
+*.depend                 # Code::Blocks dependencies
+
+# Dev-C++
+*.dev                    # Dev-C++ project file
+
+
+# Windows
+*.lnk                    # Windows shortcuts
+Desktop.ini              # Windows folder settings
+ehthumbs.db              # Windows thumbnail cache
+$RECYCLE.BIN/            # Windows recycle bin
+
+# macOS
+.AppleDouble             # macOS metadata
+.LSOverride              # macOS metadata
+Icon?                    # macOS custom folder icons
+._*                      # macOS metadata files
+
+# Linux
+.fuse_hidden*            # FUSE hidden files
+.directory               # KDE directory settings
+.Trash-*                 # Linux trash files
+
+# Core dumps
+core                     # Core dump files
+core.*                   # Numbered core dumps
+*.core                   # Alternative core dump naming
+
+# Debugging files
+*.pdb                    # Program Database files (Windows)
+*.idb                    # Incremental Database files (Visual Studio)
+*.ilk                    # Incremental Link files (Visual Studio)
+
+# Profiling files
+gmon.out                 # gprof profiling output
+*.gcov                   # Code coverage files
+*.gcda                   # GCC coverage data
+*.gcno                   # GCC coverage notes
+
+# Valgrind output
+valgrind-out.txt         # Valgrind memory check output
+*.valgrind               # Valgrind output files
+
+# Conan (C++ package manager)
+conanfile.txt.user       # User-specific Conan settings
+conanbuildinfo.*         # Generated Conan build info
+conaninfo.txt            # Conan package info
+
+# vcpkg (Microsoft C++ package manager)
+vcpkg_installed/         # vcpkg installed packages
+
+# Hunter (CMake package manager)
+_builds/                 # Hunter builds directory
+
+# Doxygen
+html/                    # Generated HTML documentation
+latex/                   # Generated LaTeX documentation
+*.tag                    # Doxygen tag files
+
+# Test outputs
+test_results/            # Test result directories
+*.xml                    # Test result XML files (be careful with legitimate XML)
+coverage/                # Code coverage reports
+*.coverage               # Coverage data files
+
+# Google Test
+gtest_output.xml         # Google Test XML output
+
+# Configuration files with secrets
+config.local.*           # Local configuration files
+secrets.json             # Secret configuration
+*.key                    # Cryptographic keys
+*.pem                    # Certificate files
+*.crt                    # Certificate files
+*.p12                    # Certificate files
+
+# Configuration files (if you add config file support later)
+config/local.json        # Local configuration overrides
+config/development.json  # Development-specific config (if sensitive)
+config/production.json   # Production config (if contains secrets)
+
+# Performance test data
+perf_test_data/          # Performance test datasets
+load_test_results/       # Load testing results
+
+# Experimental or work-in-progress files
+experimental/            # Experimental code directory
+wip/                     # Work-in-progress directory
+scratch/                 # Scratch files and notes
+TODO.txt                 # Personal TODO files (use issues instead)
+
+# Documentation and explanation files (keep repository focused on source code)
+*-Explanation.md         # Detailed technical explanation files
+LoadBalancer-Explanation.md
+Logger-Explanation.md
+MainApplication-Explanation.md
+SimpleServer-Explanation.md
+SimpleServerHeader-Explanation.md
+explanations/            # Directory containing explanation files
+docs/generated/          # Generated documentation
+*.explanation            # Any explanation files
+
+# Temporary test files
+test.txt                 # Temporary test file
+
+!.gitignore              # Always keep this file
+!README.md               # Always keep documentation
+!CMakeLists.txt          # Always keep build configuration
+!*.h                     # Always keep header files
+!*.hpp                   # Always keep header files
+!*.cpp                   # Always keep source files
+!*.c                     # Always keep C source files
+!Makefile.am             # Keep automake files if used
+!configure.ac            # Keep autotools files if used
+
+# =============================================================================
+# NOTES FOR CONTRIBUTORS
+# =============================================================================
+# 
+# How to use this .gitignore:
+# 
+# 1. This file automatically applies to all subdirectories
+# 2. To check if a file is being ignored: git check-ignore filename
+# 3. To force add an ignored file: git add -f filename
+# 4. To temporarily ignore changes to a tracked file: git update-index --skip-worktree filename
+# 5. To see all ignored files: git ls-files -i --exclude-standard
+#
+# Common commands:
+# - git status --ignored    # Show ignored files
+# - git clean -fdx          # Remove all ignored files (be careful!)
+# - git rm --cached file    # Stop tracking a file without deleting it
+#
+# If you need to modify this file:
+# 1. Test your changes with: git check-ignore -v filename
+# 2. Make sure you don't accidentally ignore source files
+# 3. Consider the impact on other developers
+# 4. Document any project-specific additions
+#
+# =============================================================================
